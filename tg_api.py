@@ -109,8 +109,12 @@ async def echo_message(msg: types.Message):
                 uid = str(msg.from_user.id)
                 # if task.check_task() == 1:
                 if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "1":
+                    order_price = 60
+                    t = await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1")
+                    if t is not None:
+                        order_price = t
                     try:
-                        sum = math.ceil(int(order_list[1]) / 1000 * 60)
+                        sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
                         if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
                             like_api.make_like(str(uid), order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
@@ -124,8 +128,12 @@ async def echo_message(msg: types.Message):
                         await bot.send_message(msg.from_user.id, "Ошибка:" + str(ex))
                 # if task.check_task() == 2:
                 if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "2":
+                    order_price = 10
+                    t = await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2")
+                    if t is not None:
+                        order_price = t
                     try:
-                        sum = math.ceil(int(order_list[1]) / 1000 * 10)
+                        sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
                         if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
                             view_api.make_view(order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")

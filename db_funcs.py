@@ -177,10 +177,16 @@ async def set_personal_price(engine, inp_tg_id: str, inp_type_id: str, inp_price
         async for row in conn.execute(personal_prices.select().where(personal_prices.c.tg_id == inp_tg_id and personal_prices.c.type == inp_type_id)):
             x = 1
             await conn.execute(sa.update(personal_prices).values({"price": inp_price}).where(personal_prices.c.tg_id == inp_tg_id and personal_prices.c.type == inp_type_id))
-            print("уже есть")
+
         if x == 0:
             await conn.execute(personal_prices.insert().values(tg_id=inp_tg_id, type=inp_type_id, price=inp_price))
-            print("новый")
+
+async def get_personal_price(engine, inp_tg_id: str, inp_type_id):
+    async with engine.acquire() as conn:
+        x = 0
+        async for row in conn.execute(personal_prices.select().where(personal_prices.c.tg_id == inp_tg_id and personal_prices.c.type == inp_type_id)):
+            return row.price
+        return None
 
 
 async def go():
@@ -192,7 +198,7 @@ async def go():
 
         # await get_price(engine, 2)
 
-        await set_personal_price(engine, "862989874", "1", "10")
+        # print(await get_personal_price(engine, "862989874", "1"))
         #
         # #
         # await registration(engine, {'name': 'Andrew', 'tg_id': '8432842'})
