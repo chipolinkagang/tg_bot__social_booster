@@ -7,6 +7,7 @@ from aiogram.dispatcher import Dispatcher
 import math
 
 import like_api
+import like_snebes_3
 import view_api
 from aiogram.types.message import ContentType
 from aiogram.utils.markdown import text, bold, italic, code, pre
@@ -87,17 +88,44 @@ async def echo_message(msg: types.Message):
                                    str(get_view['res_sum']) + " просмотров")
         # for order menu:
         elif msg.text == "🔝 Лайки":
+            await bot.send_message(msg.from_user.id, "Выберите тип лайков.", reply_markup=nav.likeMenu)
+        elif msg.text == "❤️Обычные лайки":
             # task.choose_task(1)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "1")
-            await bot.send_message(msg.from_user.id,
+            default_price_like_1 = 60
+            if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1") is not None:
+                await bot.send_message(msg.from_user.id,
                                    "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
-                                   reply_markup=nav.orderMenu)
+                                   reply_markup=nav.likeMenu)
+            else:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
+        elif msg.text == "👤Живые лайки":
+            # task.choose_task(1)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "3")
+            default_price_like_1 = 90
+            if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "3") is not None:
+                await bot.send_message(msg.from_user.id,
+                                   "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "3") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                   reply_markup=nav.likeMenu)
+            else:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
         elif msg.text == "👁‍🗨 Просмотры":
+
             # task.choose_task(2)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "2")
-            await bot.send_message(msg.from_user.id,
+            default_price_view_2 = 10
+            if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2") is not None:
+                await bot.send_message(msg.from_user.id,
                                    "Введите ссылку и количество просмотров через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2") + " рублей за 1000 просмотровl\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
                                    reply_markup=nav.orderMenu)
+            else:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество просмотров через пробел.\nЦена " + str(default_price_view_2) + " рублей за 1000 просмотровl\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
+                                       reply_markup=nav.orderMenu)
         elif msg.text[0:10] == "addbalance":
             add_balance = msg.text.split()
             await db_funcs.add_balance(engine, add_balance[1], int(add_balance[2]))
@@ -128,7 +156,25 @@ async def echo_message(msg: types.Message):
                             await db_funcs.add_balance(engine, uid, -sum)
                         else:
                             await bot.send_message(msg.from_user.id, "Недостаточно средств.")
-
+                    except Exception as ex:
+                        await bot.send_message(msg.from_user.id, "Ошибка:" + str(ex))
+                # if task.check_task() == 3:
+                if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "3":
+                    order_price = 90
+                    t = await db_funcs.get_personal_price(engine, str(msg.from_user.id), "3")
+                    if t is not None:
+                        order_price = t
+                    try:
+                        sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
+                        if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
+                            like_snebes_3.make_like(order_list[0], str(order_list[1]))
+                            await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
+                            await db_funcs.new_order(engine,
+                                                    {"tg_id": uid, "type_id": "1", "url": order_list[0],
+                                                    "value": order_list[1]})
+                            await db_funcs.add_balance(engine, uid, -sum)
+                        else:
+                            await bot.send_message(msg.from_user.id, "Недостаточно средств.")
                     except Exception as ex:
                         await bot.send_message(msg.from_user.id, "Ошибка:" + str(ex))
                 # if task.check_task() == 2:
