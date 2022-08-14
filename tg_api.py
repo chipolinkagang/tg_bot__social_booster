@@ -90,19 +90,24 @@ async def echo_message(msg: types.Message):
             # task.choose_task(1)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "1")
             await bot.send_message(msg.from_user.id,
-                                   "Введите ссылку и количество лайков через пробел.\nЦена 60 рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                   "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
                                    reply_markup=nav.orderMenu)
         elif msg.text == "👁‍🗨 Просмотры":
             # task.choose_task(2)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "2")
             await bot.send_message(msg.from_user.id,
-                                   "Введите ссылку и количество просмотров через пробел.\nЦена 10 рублей за 1000 просмотровl\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
+                                   "Введите ссылку и количество просмотров через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2") + " рублей за 1000 просмотровl\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
                                    reply_markup=nav.orderMenu)
         elif msg.text[0:10] == "addbalance":
             add_balance = msg.text.split()
             await db_funcs.add_balance(engine, add_balance[1], int(add_balance[2]))
             await bot.send_message(msg.from_user.id,
-                                   "Баланс обновлен: " + add_balance[1] + " tg_id, на " + add_balance[2] + "рублей")
+                                   "Баланс обновлен: " + add_balance[1] + " tg_id, на " + add_balance[2] + " рублей")
+        elif msg.text[0:8] == "setprice":
+            set_price = msg.text.split()
+            await db_funcs.set_personal_price(engine, set_price[1], set_price[2], set_price[3])
+            await bot.send_message(msg.from_user.id,
+                                   "Price обновлен:\n"+ "tg_id: " + set_price[1] + ", type: " + set_price[2] + ", цена: " + set_price[3] + " рублей")
         elif msg.text[0:5] == "https":
             order_list = msg.text.split()
             if len(order_list) == 2 and int(order_list[1]) > 0:

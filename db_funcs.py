@@ -174,17 +174,17 @@ async def get_now_task(engine, inp_tg_id: str):
 async def set_personal_price(engine, inp_tg_id: str, inp_type_id: str, inp_price: str):
     async with engine.acquire() as conn:
         x = 0
-        async for row in conn.execute(personal_prices.select().where(personal_prices.c.tg_id == inp_tg_id and personal_prices.c.type == inp_type_id)):
+        async for row in conn.execute(personal_prices.select().where((personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id))):
             x = 1
-            await conn.execute(sa.update(personal_prices).values({"price": inp_price}).where(personal_prices.c.tg_id == inp_tg_id and personal_prices.c.type == inp_type_id))
+            await conn.execute(sa.update(personal_prices).values({"price": inp_price}).where((personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id)))
 
         if x == 0:
             await conn.execute(personal_prices.insert().values(tg_id=inp_tg_id, type=inp_type_id, price=inp_price))
 
-async def get_personal_price(engine, inp_tg_id: str, inp_type_id):
+async def get_personal_price(engine, inp_tg_id: str, inp_type_id: str):
     async with engine.acquire() as conn:
         x = 0
-        async for row in conn.execute(personal_prices.select().where(personal_prices.c.tg_id == inp_tg_id and personal_prices.c.type == inp_type_id)):
+        async for row in conn.execute(personal_prices.select().where((personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id))):
             return row.price
         return None
 
@@ -194,6 +194,8 @@ async def go():
                              database='lab1',
                              host='127.0.0.1',
                              password='123456') as engine:
+        # print(await get_personal_price(engine, "862989874", "1"))
+        # print(await get_personal_price(engine, "862989874", "2"))
         # await create_table(engine)
 
         # await get_price(engine, 2)
