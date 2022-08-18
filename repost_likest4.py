@@ -8,7 +8,7 @@ import asyncio
 import time
 
 
-def make_like(url, value):
+def make_repost(url, value):
     chrome_options = Options()
     chrome_options.add_argument(config.chrome_profile
                                 )  # ("user-data-dir=C:\\Users\\kiril\\AppData\\Local\\Google\\Chrome Beta\\User Data\\Profile 1")
@@ -23,30 +23,31 @@ def make_like(url, value):
             return False
         return True
     try:
-        driver.get('https://snebes.ru/index.php')
+        driver.get('https://likest.ru/')
         time.sleep(2)
-        if check_exists_by_xpath('''/html/body/div[2]/div/div/div[1]/center/center[1]/div/div/div'''):
-            id_box = driver.find_element(By.XPATH, '''/html/body/div[2]/div/div/div[1]/center/center[1]/div/div/div''') #login vk
+        if check_exists_by_xpath('''//*[@id="ulogin-button"]'''):
+            id_box = driver.find_element(By.XPATH, '''//*[@id="ulogin-button"]''') #login vk
             id_box.click()
             time.sleep(3)
-        driver.get('https://snebes.ru/add_tasks.php?t=1')
+        driver.get('https://likest.ru/reposts/add')
         time.sleep(1)
-        id_box = driver.find_element(By.XPATH, '''//*[@id="url"]''') #
+        id_box = driver.find_element(By.XPATH, '''//*[@id="edit-title"]''')
+        id_box.send_keys("Быстрые 4 балла :)") #
+        id_box = driver.find_element(By.XPATH, '''//*[@id="edit-link"]''')
         id_box.send_keys(url) #
-        id_box = driver.find_element(By.XPATH, '''//*[@id="pri"]''') # цена баллов
-        id_box.clear()
-        id_box.send_keys("30")
-        id_box = driver.find_element(By.XPATH, '''//*[@id="ko"]''') # кол-во
+        id_box = driver.find_element(By.XPATH, '''//*[@id="amount"]''')
         id_box.clear()
         id_box.send_keys(value) #
-        id_box = driver.find_element(By.XPATH, '''//*[@id="button1"]''')
+        id_box = driver.find_element(By.XPATH, '''//*[@id="edit-submit"]''')
         id_box.click()
-        time.sleep(3)
+        time.sleep(1)
+        # id_box = driver.find_element(By.XPATH, '''/html/body/div[3]/footer/div[1]/div/div/div/nav/ul/li[5]/a''') # exit
+        # id_box.click()
     except Exception as ex:
         print(ex)
     finally:
         driver.quit()
 
-# make_like("https://vk.com/wall-137221094_16", 10)
+# make_like("test_task", "https://vk.com/wall-45026981_41226", 1)
 
 

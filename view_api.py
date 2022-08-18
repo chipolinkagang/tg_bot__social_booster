@@ -51,8 +51,6 @@ def make_view(url, value):
     except Exception as ex:
         print(ex)
     finally:
-        print()
-        driver.close()
         driver.quit()
 
 

@@ -45,8 +45,6 @@ def make_like(name, url, value):
     except Exception as ex:
         print(ex)
     finally:
-        print()
-        driver.close()
         driver.quit()
 
 # make_like("test_task", "https://vk.com/wall201748903_2313", 10)

@@ -11,6 +11,7 @@ mainMenu = ReplyKeyboardMarkup(resize_keyboard=True).add(btnOrder, btnProfile, b
 #order menu
 btnLike = KeyboardButton('🔝 Лайки')
 btnViews = KeyboardButton('👁‍🗨 Просмотры')
+btnRepost = KeyboardButton('📢Репосты')
 orderMenu = ReplyKeyboardMarkup(resize_keyboard=True).add(btnLike, btnViews, btnMain)
 
 #like_menu
