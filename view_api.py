@@ -28,7 +28,7 @@ def make_view(url, value):
         if check_exists_by_xpath('''/html/body/div[1]/div/div/div[2]/button[1]'''):
             id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div[2]/button[1]''')  # login vk
             id_box.click()
-            # time.sleep(1)
+            time.sleep(1)
 
         driver.get('https://lk.vkviews.ru/task/add/post')
         # time.sleep(3)

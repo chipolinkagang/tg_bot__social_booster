@@ -24,7 +24,7 @@ from aiopg.sa import create_engine
 
 import markups as nav
 
-bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
+bot = Bot(token='5489920134:AAGkMf2P9b22kpAGkRWLV6QAd6b6jyIN85k')
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
 
@@ -75,7 +75,6 @@ async def process_callback_check_pay_button(callback_query: types.CallbackQuery)
                              database='lab1',
                              host='127.0.0.1',
                              password='123456') as engine:
-
         labels = await db_funcs.check_payment_labels(engine, str(callback_query.from_user.id))
         for label in labels:
             if await pay_yoomoney.check_payment(label):
@@ -83,7 +82,8 @@ async def process_callback_check_pay_button(callback_query: types.CallbackQuery)
                 await db_funcs.delete_payment_label(engine, label)
                 await db_funcs.add_balance(engine, payment_info["tg_id"], payment_info["sum"])
                 await bot.send_message(callback_query.from_user.id, "Успешное пополнение баланса # " + label + ".\nЗачислено: " + str(payment_info["sum"]))
-            await bot.send_message(callback_query.from_user.id, "Пополнение #" + label + " не завершено." )
+            else:
+                await bot.send_message(callback_query.from_user.id, "Пополнение #" + label + " не завершено." )
 
 
 @dp.message_handler()
