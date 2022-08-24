@@ -8,19 +8,25 @@ import math
 
 import like_api
 import like_snebes_3
+import pay_yoomoney
 import repost_likest4
 import view_api
 from aiogram.types.message import ContentType
 from aiogram.utils.markdown import text, bold, italic, code, pre
-from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions
+from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions, InlineKeyboardButton, \
+    InlineKeyboardMarkup
+
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
 
 import db_funcs
 from aiopg.sa import create_engine
 
 import markups as nav
 
-bot = Bot(token='5461590476:AAH8XC2qfAHQh0yc4KDnSkcRwfpVPDSY6Eo')
-dp = Dispatcher(bot)
+bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
+dp = Dispatcher(bot, storage=MemoryStorage())
+dp.middleware.setup(LoggingMiddleware())
 
 
 @dp.message_handler(commands=['start', 'help'])
@@ -51,6 +57,34 @@ async def send_welcome(message: types.Message):
 #
 # task = Task_now()
 
+@dp.callback_query_handler(lambda c: c.data == 'make_pay_button')
+async def process_callback_make_pay_button(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    async with create_engine(user='postgres',
+                             database='lab1',
+                             host='127.0.0.1',
+                             password='123456') as engine:
+        await db_funcs.set_now_task(engine, str(callback_query.from_user.id), "1000")
+    await bot.send_message(callback_query.from_user.id, 'Введите сумму для пополнения с карты:' )
+
+
+@dp.callback_query_handler(lambda c: c.data == 'check_pay_button')
+async def process_callback_check_pay_button(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    async with create_engine(user='postgres',
+                             database='lab1',
+                             host='127.0.0.1',
+                             password='123456') as engine:
+
+        labels = await db_funcs.check_payment_labels(engine, str(callback_query.from_user.id))
+        for label in labels:
+            if await pay_yoomoney.check_payment(label):
+                payment_info = await db_funcs.get_payment(engine, label)
+                await db_funcs.delete_payment_label(engine, label)
+                await db_funcs.add_balance(engine, payment_info["tg_id"], payment_info["sum"])
+                await bot.send_message(callback_query.from_user.id, "Успешное пополнение баланса # " + label + ".\nЗачислено: " + str(payment_info["sum"]))
+            await bot.send_message(callback_query.from_user.id, "Пополнение #" + label + " не завершено." )
+
 
 @dp.message_handler()
 async def echo_message(msg: types.Message):
@@ -75,7 +109,7 @@ async def echo_message(msg: types.Message):
             balance = await db_funcs.get_balance(engine, str(msg.from_user.id))
             ans = "Информация:\nTelegram id: " + uid + "\nБаланс: " + str(
                 balance) + "\nНа счет пополнения баланса писать: @chipolinka_gang"
-            await bot.send_message(msg.from_user.id, ans)
+            await bot.send_message(msg.from_user.id, ans, reply_markup=nav.inline_kb_make_payment)
         elif msg.text == "#️⃣ Статистика":
             uid = str(msg.from_user.id)
             get_like = await db_funcs.get_report(engine, uid, 1)
@@ -237,8 +271,16 @@ async def echo_message(msg: types.Message):
                     await bot.send_message(msg.from_user.id, "Не выбран тип накрутки.")
             else:
                 await bot.send_message(msg.from_user.id, "Неверный формат ввода.\nПример верного формата:\nhttps://vk.com/wall-22822305_1307837 3200\n(ссылка_на_пост, 1 пробел, количество)")
-
-            # await bot.send_message(msg.from_user.id, "Тип задания: " + str(task.check_task()))
+        elif (msg.text.isdigit()) and (await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "1000"):
+            if int(msg.text) > 1:
+                payment_url_label = await pay_yoomoney.create_payment(str(msg.from_user.id), int(msg.text))
+                inline_kb__check_payment = InlineKeyboardMarkup()
+                inline_kb__check_payment.row(InlineKeyboardButton('Оплатить', url=payment_url_label["url"]))
+                inline_kb__check_payment.row(InlineKeyboardButton('Проверить оплату', callback_data='check_pay_button'))
+                await bot.send_message(msg.from_user.id, "Ссылка для оплаты создана. \nОплата доступна в течение 30 минут.", reply_markup=inline_kb__check_payment)
+                await db_funcs.create_new_payment(engine, str(msg.from_user.id), int(msg.text), payment_url_label["label"])
+            else:
+                await bot.send_message(msg.from_user.id, "Сумма не может быть меньше 2 рублей.")
         else:
             await bot.send_message(msg.from_user.id, "Чтобы появилось меню, отправьте /start")
 

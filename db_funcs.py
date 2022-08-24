@@ -6,6 +6,7 @@ from typing import List
 import sqlalchemy as sa
 from aiopg.sa import create_engine
 from sqlalchemy import Table, MetaData
+import pay_yoomoney
 
 if sys.version_info >= (3, 8) and sys.platform.lower().startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -30,7 +31,14 @@ personal_prices = sa.Table('personal_prices', metadata,
                            sa.Column('id', sa.Integer, primary_key=True),
                            sa.Column('tg_id', sa.String(255)),
                            sa.Column('type', sa.Integer),
-                           sa.Column('price', sa.String))
+                           sa.Column('price', sa.String(255)))
+
+payments_now = sa.Table('payments_now', metadata,
+                        sa.Column('id', sa.Integer, primary_key=True),
+                        sa.Column('tg_id', sa.String(255)),
+                        sa.Column('sum', sa.Integer),
+                        sa.Column('label', sa.String(255)),
+                        sa.Column('pay_time', sa.String(255)))
 
 list_o = sa.Table('list_o', metadata,
                   sa.Column('id', sa.Integer, primary_key=True),
@@ -40,21 +48,22 @@ list_o = sa.Table('list_o', metadata,
 
 async def create_table(engine):
     async with engine.acquire() as conn:
-        await conn.execute('DROP TABLE IF EXISTS personal_prices')
-        await conn.execute('''CREATE TABLE personal_prices (
+        await conn.execute('DROP TABLE IF EXISTS payments_now')
+        await conn.execute('''CREATE TABLE payments_now (
                                                   id serial PRIMARY KEY,
                                                   tg_id varchar(255),
-                                                  type integer,
-                                                  price varchar(255))''')
+                                                  sum integer,
+                                                  label varchar(255),
+                                                  pay_time varchar(255))''')
 
-        await conn.execute('DROP TABLE IF EXISTS users')
-        await conn.execute('''CREATE TABLE users (
-                                          id serial PRIMARY KEY,
-                                          name varchar(255),
-                                          tg_id varchar(255),
-                                          balance integer,
-                                          now_task varchar(255))''')
-
+        # await conn.execute('DROP TABLE IF EXISTS users')
+        # await conn.execute('''CREATE TABLE users (
+        #                                   id serial PRIMARY KEY,
+        #                                   name varchar(255),
+        #                                   tg_id varchar(255),
+        #                                   balance integer,
+        #                                   now_task varchar(255))''')
+        #
         # await conn.execute('DROP TABLE IF EXISTS orders')
         # await conn.execute('''CREATE TABLE orders (
         #                                   id serial PRIMARY KEY,
@@ -174,19 +183,62 @@ async def get_now_task(engine, inp_tg_id: str):
 async def set_personal_price(engine, inp_tg_id: str, inp_type_id: str, inp_price: str):
     async with engine.acquire() as conn:
         x = 0
-        async for row in conn.execute(personal_prices.select().where((personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id))):
+        async for row in conn.execute(personal_prices.select().where(
+                (personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id))):
             x = 1
-            await conn.execute(sa.update(personal_prices).values({"price": inp_price}).where((personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id)))
+            await conn.execute(sa.update(personal_prices).values({"price": inp_price}).where(
+                (personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id)))
 
         if x == 0:
             await conn.execute(personal_prices.insert().values(tg_id=inp_tg_id, type=inp_type_id, price=inp_price))
 
+
 async def get_personal_price(engine, inp_tg_id: str, inp_type_id: str):
     async with engine.acquire() as conn:
-        x = 0
-        async for row in conn.execute(personal_prices.select().where((personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id))):
+        async for row in conn.execute(personal_prices.select().where(
+                (personal_prices.c.tg_id == inp_tg_id) & (personal_prices.c.type == inp_type_id))):
             return row.price
         return None
+
+
+async def create_new_payment(engine, input_tg_id: str, input_sum: int, input_label: str):
+    async with engine.acquire() as conn:
+        pay_date = datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S")
+        await conn.execute(
+            payments_now.insert().values(tg_id=input_tg_id, sum=input_sum, label=input_label, pay_time=pay_date))
+
+
+async def check_payment_labels(engine, input_tg_id: str) -> List:
+    async with engine.acquire() as conn:
+        x = []
+        async for row in conn.execute(payments_now.select()):  # .where(payments_now.c.tg_id == input_tg_id)
+            if (pay_yoomoney.check_interval_of_pay(row.pay_time)) and (input_tg_id == row.tg_id):
+                x.append(row.label)
+            else:
+                if not pay_yoomoney.check_interval_of_pay(row.pay_time):
+                    await conn.execute(payments_now.delete().where(payments_now.c.label == row.label))
+
+            # else:
+            #     conn.execute(payments_now.delete().where(payments_now.c.label == row.label))
+        return x
+
+
+async def delete_payment_label(engine, input_tg_id: str):
+    async with engine.acquire() as conn:
+        await conn.execute(payments_now.delete().where(payments_now.c.label == input_tg_id))
+
+
+async def get_payment(engine, input_label: str) -> dict:
+    async with engine.acquire() as conn:
+        async for row in conn.execute(payments_now.select().where(payments_now.c.label == input_label)):
+            return {"tg_id": row.tg_id, "sum": row.sum, "label": row.label, "pay_time": row.pay_time}
+
+
+# async def check_all_labels(engine, input_labels: List):
+#     for label in input_labels:
+#         if pay_yoomoney.check_payment(label):
+#             now_pay = (await get_payment(engine, label))
+#             await add_balance(engine, now_pay["tg_id"], now_pay["sum"])
 
 
 async def go():
@@ -197,9 +249,11 @@ async def go():
         # print(await get_personal_price(engine, "862989874", "1"))
         # print(await get_personal_price(engine, "862989874", "2"))
         # await create_table(engine)
+        # await check_payment_status(engine, "1234332")
 
         # await get_price(engine, 2)
-
+        # await create_new_payment(engine, "1234332", 100, "1234332_9534922")
+        # print(await get_payment(engine, "1234332_9534922"))
         # print(await get_personal_price(engine, "862989874", "1"))
         #
         # #
