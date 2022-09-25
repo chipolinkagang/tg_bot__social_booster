@@ -8,7 +8,7 @@ import config
 import time
 
 
-def make_view(url, value):
+def make_view_video(url, value):
     chrome_options = Options()
     chrome_options.add_argument(config.chrome_profile
         ) #("user-data-dir=C:\\Users\\kiril\\AppData\\Local\\Google\\Chrome Beta\\User Data\\Profile 1")
@@ -31,32 +31,27 @@ def make_view(url, value):
             time.sleep(1)
 
         driver.get('https://lk.vkviews.ru/task/add/post')
-        # time.sleep(1)
-        id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div/div[3]/form/div[2]/div/div[2]/input''')
+        # time.sleep(3)
+        id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div/div[2]/form/div[2]/div/div[2]/input''')
         id_box.send_keys(url) #
-        id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div/div[3]/form/div[4]/div[2]/div[1]/input''')
+        id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div/div[2]/form/div[4]/div[2]/div[1]/input''')
         id_box.clear()
         id_box.send_keys(value) #
-        id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div/div[3]/form/div[8]/button''') # make order
+        id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div/div[2]/form/div[8]/button''') # make order
         id_box.click()
-        #решение капчи:
-        time.sleep(2)
-        for tr in range(0, 5):
-            if check_exists_by_xpath('''/html/body/div[4]/div[2]/div/div[2]/div/div[2]/div[2]'''):
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[4]/div[2]/div/div[2]/div/div[2]/div[2]''')  # 2captcha расширение
-                id_box.click()
-                break
-            else:
-                time.sleep(2)
-        for tr in range(0, 24):
-            time.sleep(5) #/html/body/div[4]/div[3]/div/h3
-            if check_exists_by_xpath('''/html/body/div[4]/div[3]/div/h3'''): # чек на конец
-                break
+        # time.sleep(10000)
+        # id_box = driver.find_element(By.XPATH, '''/html/body/div[4]/div[2]/div/div[1]''')  # close order
+        # id_box.click()
+        # id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/header/div/div[2]/div[2]/div/img''') # выход
+        # id_box.click()
+        # time.sleep(1)
+        # id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/header/div/div[2]/div[2]/ul/li[3]/a''') # exit
+        # id_box.click()
+        # time.sleep(1)
     except Exception as ex:
         print(ex)
     finally:
         driver.quit()
 
 
-make_view("https://vk.com/wall436857739_139", 1)
+# make_view("https://vk.com/wall436857739_139", 100)
