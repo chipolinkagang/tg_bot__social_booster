@@ -40,10 +40,6 @@ payments_now = sa.Table('payments_now', metadata,
                         sa.Column('label', sa.String(255)),
                         sa.Column('pay_time', sa.String(255)))
 
-list_o = sa.Table('list_o', metadata,
-                  sa.Column('id', sa.Integer, primary_key=True),
-                  sa.Column('type', sa.String(255)),
-                  sa.Column('price', sa.Integer))
 
 
 async def create_table(engine):
