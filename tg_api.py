@@ -6,6 +6,7 @@ from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
 import math
 
+import config
 import like_api
 import like_snebes_3
 import pay_yoomoney
@@ -27,22 +28,17 @@ import markups as nav
 bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
-datab = {
-    "user":'postgres',
-    "database": 'lab1',
-    "host": '127.0.0.1',
-    "password":'123456'
-}
+
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
     uid = message.from_user.id  # записал id
     uname = message.from_user.full_name  # имя
     person = {"name": uname, "tg_id": str(uid)}
-    async with create_engine(user=datab["user"],
-                             database=datab["database"],
-                             host=datab["host"],
-                             password=datab["password"]) as engine:
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
         if not await db_funcs.reg_check(engine, person["tg_id"]):
             await db_funcs.registration(engine, person)
             await message.reply("Регистрация успешно пройдена!", reply_markup=nav.mainMenu)
@@ -65,10 +61,10 @@ async def send_welcome(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == 'make_pay_button')
 async def process_callback_make_pay_button(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    async with create_engine(user=datab["user"],
-                             database=datab["database"],
-                             host=datab["host"],
-                             password=datab["password"]) as engine:
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
         await db_funcs.set_now_task(engine, str(callback_query.from_user.id), "1000")
     await bot.send_message(callback_query.from_user.id, 'Введите сумму для пополнения с карты:')
 
@@ -76,10 +72,10 @@ async def process_callback_make_pay_button(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == 'check_pay_button')
 async def process_callback_check_pay_button(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    async with create_engine(user=datab["user"],
-                             database=datab["database"],
-                             host=datab["host"],
-                             password=datab["password"]) as engine:
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
         labels = await db_funcs.check_payment_labels(engine, str(callback_query.from_user.id))
         for label in labels:
             if await pay_yoomoney.check_payment(label):
@@ -95,10 +91,10 @@ async def process_callback_check_pay_button(callback_query: types.CallbackQuery)
 
 @dp.message_handler()
 async def echo_message(msg: types.Message):
-    async with create_engine(user=datab["user"],
-                             database=datab["database"],
-                             host=datab["host"],
-                             password=datab["password"]) as engine:
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
         if msg.text == "⬅️ Главное меню":
             # task.choose_task(0)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
