@@ -24,20 +24,25 @@ from aiopg.sa import create_engine
 
 import markups as nav
 
-bot = Bot(token='5489920134:AAGkMf2P9b22kpAGkRWLV6QAd6b6jyIN85k')
+bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
-
+datab = {
+    "user":'postgres',
+    "database": 'lab1',
+    "host": '127.0.0.1',
+    "password":'123456'
+}
 
 @dp.message_handler(commands=['start', 'help'])
 async def send_welcome(message: types.Message):
     uid = message.from_user.id  # записал id
     uname = message.from_user.full_name  # имя
     person = {"name": uname, "tg_id": str(uid)}
-    async with create_engine(user='postgres',
-                             database='lab1',
-                             host='127.0.0.1',
-                             password='123456') as engine:
+    async with create_engine(user=datab["user"],
+                             database=datab["database"],
+                             host=datab["host"],
+                             password=datab["password"]) as engine:
         if not await db_funcs.reg_check(engine, person["tg_id"]):
             await db_funcs.registration(engine, person)
             await message.reply("Регистрация успешно пройдена!", reply_markup=nav.mainMenu)
@@ -60,38 +65,40 @@ async def send_welcome(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data == 'make_pay_button')
 async def process_callback_make_pay_button(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    async with create_engine(user='postgres',
-                             database='lab1',
-                             host='127.0.0.1',
-                             password='123456') as engine:
+    async with create_engine(user=datab["user"],
+                             database=datab["database"],
+                             host=datab["host"],
+                             password=datab["password"]) as engine:
         await db_funcs.set_now_task(engine, str(callback_query.from_user.id), "1000")
-    await bot.send_message(callback_query.from_user.id, 'Введите сумму для пополнения с карты:' )
+    await bot.send_message(callback_query.from_user.id, 'Введите сумму для пополнения с карты:')
 
 
 @dp.callback_query_handler(lambda c: c.data == 'check_pay_button')
 async def process_callback_check_pay_button(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    async with create_engine(user='postgres',
-                             database='lab1',
-                             host='127.0.0.1',
-                             password='123456') as engine:
+    async with create_engine(user=datab["user"],
+                             database=datab["database"],
+                             host=datab["host"],
+                             password=datab["password"]) as engine:
         labels = await db_funcs.check_payment_labels(engine, str(callback_query.from_user.id))
         for label in labels:
             if await pay_yoomoney.check_payment(label):
                 payment_info = await db_funcs.get_payment(engine, label)
                 await db_funcs.delete_payment_label(engine, label)
                 await db_funcs.add_balance(engine, payment_info["tg_id"], payment_info["sum"])
-                await bot.send_message(callback_query.from_user.id, "Успешное пополнение баланса # " + label + ".\nЗачислено: " + str(payment_info["sum"]))
+                await bot.send_message(callback_query.from_user.id,
+                                       "Успешное пополнение баланса # " + label + ".\nЗачислено: " + str(
+                                           payment_info["sum"]))
             else:
-                await bot.send_message(callback_query.from_user.id, "Пополнение #" + label + " не завершено." )
+                await bot.send_message(callback_query.from_user.id, "Пополнение #" + label + " не завершено.")
 
 
 @dp.message_handler()
 async def echo_message(msg: types.Message):
-    async with create_engine(user='postgres',
-                             database='lab1',
-                             host='127.0.0.1',
-                             password='123456') as engine:
+    async with create_engine(user=datab["user"],
+                             database=datab["database"],
+                             host=datab["host"],
+                             password=datab["password"]) as engine:
         if msg.text == "⬅️ Главное меню":
             # task.choose_task(0)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
@@ -118,8 +125,10 @@ async def echo_message(msg: types.Message):
             # task.choose_task(0)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
             await bot.send_message(msg.from_user.id,
-                                   "Статистика:\n\nЛайки обычные:\nЗаказов: " + str(get_like['res_orders']) + " штук\nВсего: " +
-                                   str(get_like['res_sum']) + " лайков\n\nЛайки живые:\nЗаказов: " + str(get_snebes_like['res_orders']) + " штук\nВсего: " +
+                                   "Статистика:\n\nЛайки обычные:\nЗаказов: " + str(
+                                       get_like['res_orders']) + " штук\nВсего: " +
+                                   str(get_like['res_sum']) + " лайков\n\nЛайки живые:\nЗаказов: " + str(
+                                       get_snebes_like['res_orders']) + " штук\nВсего: " +
                                    str(get_snebes_like['res_sum']) + " лайков\n\nПросмотры:\nЗаказов: " + str(
                                        get_view['res_orders']) + " штук\nВсего: " +
                                    str(get_view['res_sum']) + " просмотров")
@@ -132,11 +141,14 @@ async def echo_message(msg: types.Message):
             default_price_like_1 = 60
             if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1") is not None:
                 await bot.send_message(msg.from_user.id,
-                                   "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
-                                   reply_markup=nav.likeMenu)
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(
+                                           engine, str(msg.from_user.id),
+                                           "1") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
             else:
                 await bot.send_message(msg.from_user.id,
-                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(
+                                           default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
                                        reply_markup=nav.likeMenu)
         elif msg.text == "👤Живые лайки":
             # task.choose_task(1)
@@ -144,11 +156,14 @@ async def echo_message(msg: types.Message):
             default_price_like_1 = 90
             if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "3") is not None:
                 await bot.send_message(msg.from_user.id,
-                                   "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "3") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
-                                   reply_markup=nav.likeMenu)
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(
+                                           engine, str(msg.from_user.id),
+                                           "3") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
             else:
                 await bot.send_message(msg.from_user.id,
-                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(
+                                           default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
                                        reply_markup=nav.likeMenu)
         elif msg.text == "👁‍🗨 Просмотры":
 
@@ -157,11 +172,14 @@ async def echo_message(msg: types.Message):
             default_price_view_2 = 10
             if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2") is not None:
                 await bot.send_message(msg.from_user.id,
-                                   "Введите ссылку и количество просмотров через пробел.\nЦена " + await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2") + " рублей за 1000 просмотров\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
-                                   reply_markup=nav.orderMenu)
+                                       "Введите ссылку и количество просмотров через пробел.\nЦена " + await db_funcs.get_personal_price(
+                                           engine, str(msg.from_user.id),
+                                           "2") + " рублей за 1000 просмотров\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
+                                       reply_markup=nav.orderMenu)
             else:
                 await bot.send_message(msg.from_user.id,
-                                       "Введите ссылку и количество просмотров через пробел.\nЦена " + str(default_price_view_2) + " рублей за 1000 просмотров\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
+                                       "Введите ссылку и количество просмотров через пробел.\nЦена " + str(
+                                           default_price_view_2) + " рублей за 1000 просмотров\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
                                        reply_markup=nav.orderMenu)
         elif msg.text == "📢Репосты":
 
@@ -170,11 +188,14 @@ async def echo_message(msg: types.Message):
             default_price_repost = 120
             if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "4") is not None:
                 await bot.send_message(msg.from_user.id,
-                                   "Введите ссылку и количество репостов через пробел.\nЦена " + str(int(await db_funcs.get_personal_price(engine, str(msg.from_user.id), "4")) / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
-                                   reply_markup=nav.orderMenu)
+                                       "Введите ссылку и количество репостов через пробел.\nЦена " + str(
+                                           int(await db_funcs.get_personal_price(engine, str(msg.from_user.id),
+                                                                                 "4")) / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
+                                       reply_markup=nav.orderMenu)
             else:
                 await bot.send_message(msg.from_user.id,
-                                       "Введите ссылку и количество репостов через пробел.\nЦена " + str(default_price_repost / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
+                                       "Введите ссылку и количество репостов через пробел.\nЦена " + str(
+                                           default_price_repost / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
                                        reply_markup=nav.orderMenu)
         elif msg.text[0:10] == "addbalance":
             add_balance = msg.text.split()
@@ -185,7 +206,8 @@ async def echo_message(msg: types.Message):
             set_price = msg.text.split()
             await db_funcs.set_personal_price(engine, set_price[1], set_price[2], set_price[3])
             await bot.send_message(msg.from_user.id,
-                                   "Price обновлен:\n"+ "tg_id: " + set_price[1] + ", type: " + set_price[2] + ", цена: " + set_price[3] + " рублей")
+                                   "Price обновлен:\n" + "tg_id: " + set_price[1] + ", type: " + set_price[
+                                       2] + ", цена: " + set_price[3] + " рублей")
         elif msg.text[0:5] == "https":
             order_list = msg.text.split()
             if len(order_list) == 2 and int(order_list[1]) > 0:
@@ -202,7 +224,7 @@ async def echo_message(msg: types.Message):
                             like_api.make_like(str(uid), order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine, {"tg_id": uid, "type_id": "1", "url": order_list[0],
-                                                      "value": order_list[1]})
+                                                              "value": order_list[1], "sum": sum})
                             await db_funcs.add_balance(engine, uid, -sum)
                         else:
                             await bot.send_message(msg.from_user.id, "Недостаточно средств.")
@@ -220,8 +242,8 @@ async def echo_message(msg: types.Message):
                             like_snebes_3.make_like(order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine,
-                                                    {"tg_id": uid, "type_id": "1", "url": order_list[0],
-                                                    "value": order_list[1]})
+                                                     {"tg_id": uid, "type_id": "1", "url": order_list[0],
+                                                      "value": order_list[1], "sum": sum})
                             await db_funcs.add_balance(engine, uid, -sum)
                         else:
                             await bot.send_message(msg.from_user.id, "Недостаточно средств.")
@@ -241,7 +263,7 @@ async def echo_message(msg: types.Message):
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine,
                                                      {"tg_id": uid, "type_id": "1", "url": order_list[0],
-                                                      "value": order_list[1]})
+                                                      "value": order_list[1], "sum": sum})
                             await db_funcs.add_balance(engine, uid, -sum)
                         else:
                             await bot.send_message(msg.from_user.id, "Недостаточно средств.")
@@ -260,7 +282,7 @@ async def echo_message(msg: types.Message):
                             view_api.make_view(order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine, {"tg_id": uid, "type_id": "2", "url": order_list[0],
-                                                          "value": order_list[1]})
+                                                              "value": order_list[1], "sum": sum})
                             await db_funcs.add_balance(engine, uid, -sum)
                         else:
                             await bot.send_message(msg.from_user.id, "Недостаточно средств.")
@@ -270,15 +292,19 @@ async def echo_message(msg: types.Message):
                 if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "0":
                     await bot.send_message(msg.from_user.id, "Не выбран тип накрутки.")
             else:
-                await bot.send_message(msg.from_user.id, "Неверный формат ввода.\nПример верного формата:\nhttps://vk.com/wall-22822305_1307837 3200\n(ссылка_на_пост, 1 пробел, количество)")
+                await bot.send_message(msg.from_user.id,
+                                       "Неверный формат ввода.\nПример верного формата:\nhttps://vk.com/wall-22822305_1307837 3200\n(ссылка_на_пост, 1 пробел, количество)")
         elif (msg.text.isdigit()) and (await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "1000"):
             if int(msg.text) > 1:
                 payment_url_label = await pay_yoomoney.create_payment(str(msg.from_user.id), int(msg.text))
                 inline_kb__check_payment = InlineKeyboardMarkup()
                 inline_kb__check_payment.row(InlineKeyboardButton('Оплатить', url=payment_url_label["url"]))
                 inline_kb__check_payment.row(InlineKeyboardButton('Проверить оплату', callback_data='check_pay_button'))
-                await bot.send_message(msg.from_user.id, "Ссылка для оплаты создана. \nОплата доступна в течение 30 минут.", reply_markup=inline_kb__check_payment)
-                await db_funcs.create_new_payment(engine, str(msg.from_user.id), int(msg.text), payment_url_label["label"])
+                await bot.send_message(msg.from_user.id,
+                                       "Ссылка для оплаты создана. \nОплата доступна в течение 30 минут.",
+                                       reply_markup=inline_kb__check_payment)
+                await db_funcs.create_new_payment(engine, str(msg.from_user.id), int(msg.text),
+                                                  payment_url_label["label"])
             else:
                 await bot.send_message(msg.from_user.id, "Сумма не может быть меньше 2 рублей.")
         else:

@@ -59,4 +59,4 @@ def make_view(url, value):
         driver.quit()
 
 
-make_view("https://vk.com/wall436857739_139", 1)
+# make_view("https://vk.com/wall436857739_139", 1)

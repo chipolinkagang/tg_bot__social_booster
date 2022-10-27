@@ -25,7 +25,8 @@ orders = sa.Table('orders', metadata,
                   sa.Column('url', sa.String(255)),
                   sa.Column('type_id', sa.Integer),
                   sa.Column('value', sa.Integer),
-                  sa.Column('date', sa.String(255)))
+                  sa.Column('date', sa.String(255)),
+                  sa.Column('sum', sa.Integer))
 
 personal_prices = sa.Table('personal_prices', metadata,
                            sa.Column('id', sa.Integer, primary_key=True),
@@ -39,7 +40,6 @@ payments_now = sa.Table('payments_now', metadata,
                         sa.Column('sum', sa.Integer),
                         sa.Column('label', sa.String(255)),
                         sa.Column('pay_time', sa.String(255)))
-
 
 
 async def create_table(engine):
@@ -104,7 +104,7 @@ async def new_order(engine, order: dict) -> str:
     async with engine.acquire() as conn:
         o_date = datetime.datetime.today().strftime("%Y%m%d/%H.%M.%S")
         await conn.execute(orders.insert().values(tg_id=order['tg_id'], url=order['url'],
-                                                  type_id=order['type_id'], value=order['value'], date=o_date))
+                                                  type_id=order['type_id'], value=order['value'], date=o_date, sum=order['sum']))
         x = 0
         async for row in conn.execute(orders.select().where(orders.c.tg_id == order['tg_id']
                                                             and orders.c.url == order['url']
@@ -129,13 +129,6 @@ async def get_balance(engine, int_tg_id: str):
     async with engine.acquire() as conn:
         async for row in conn.execute(users.select().where(users.c.tg_id == int_tg_id)):
             return row.balance
-
-
-# получить текущую цену для конкретного id товара
-async def get_price(engine, type_id: int):
-    async with engine.acquire() as conn:
-        async for row in conn.execute(users.select().where(list_o.c.id == type_id)):
-            print(row.type)
 
 
 # Получение отчета о tg_id, 0 - вывод всех, inp_type_id ввод типа услуги
@@ -237,11 +230,12 @@ async def get_payment(engine, input_label: str) -> dict:
 #             await add_balance(engine, now_pay["tg_id"], now_pay["sum"])
 
 
-# async def go():
-#     async with create_engine(user='postgres',
-#                              database='lab1',
-#                              host='127.0.0.1',
-#                              password='123456') as engine:
+async def go():
+    async with create_engine(user='postgres',
+                             database='lab1',
+                             host='127.0.0.1',
+                             password='123456') as engine:
+        print(await get_all(engine))
 #         # print(await get_personal_price(engine, "862989874", "1"))
 #         # print(await get_personal_price(engine, "862989874", "2"))
 #         # await create_table(engine)
@@ -287,7 +281,7 @@ async def get_payment(engine, input_label: str) -> dict:
 #         #
 #         #     async for row in conn.execute(peop.select()):
 #         #         print(row.id, row.first_name, row.last_name)
-#         print(await get_all(engine))
+
 #         # print(await set_now_task(engine, "862989874", "2"))
 
 
