@@ -237,58 +237,58 @@ async def get_payment(engine, input_label: str) -> dict:
 #             await add_balance(engine, now_pay["tg_id"], now_pay["sum"])
 
 
-async def go():
-    async with create_engine(user='postgres',
-                             database='lab1',
-                             host='127.0.0.1',
-                             password='123456') as engine:
-        # print(await get_personal_price(engine, "862989874", "1"))
-        # print(await get_personal_price(engine, "862989874", "2"))
-        # await create_table(engine)
-        # await check_payment_status(engine, "1234332")
-
-        # await get_price(engine, 2)
-        # await create_new_payment(engine, "1234332", 100, "1234332_9534922")
-        # print(await get_payment(engine, "1234332_9534922"))
-        # print(await get_personal_price(engine, "862989874", "1"))
-        #
-        # #
-        # await registration(engine, {'name': 'Andrew', 'tg_id': '8432842'})
-        # await registration(engine, {'name': 'Andr3ew', 'tg_id': '89573275'})
-        #
-        # await registration(engine, {'name': 'A', 'tg_id': '97372'})
-        # await registration(engine, {'name': 'b3bb', 'tg_id': '8573275'})
-        # await registration(engine, {'name': 'cecece', 'tg_id': '4324112'})
-        #
-        # await new_order(engine,
-        #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/wall_', 'type_id': 1, 'value': 200})
-        # await new_order(engine,
-        #                 {'tg_id': '8629', 'url': 'vk.com/chipoli/wall_fd', 'type_id': 1, 'value': 25})
-        # await new_order(engine,
-        #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/dgwall_', 'type_id': 1, 'value': 25})
-        # await new_order(engine,
-        #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/wafdgfll_', 'type_id': 1, 'value': 300})
-        # await new_order(engine,
-        #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/dgwall_', 'type_id': 2, 'value': 2500})
-        # await new_order(engine,
-        #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/wafdgfll_', 'type_id': 2, 'value': 2000})
-
-        # await add_balance(engine, '8573275', -15)
-        # await get_report(engine, '8573275', 1)
-        # await set(engine, {"id": "2", "first_name": "rer", "last_name": "fef"})
-        # await get_list(engine, {"first_name": {"like": ""}, "last_name": {"ilike": "A"}}, [{"field": "id", "direction": "asc"}], 4, 0)
-        # await get(engine, "2")
-        # await get_count(engine, {"first_name": {"like": ""}, "last_name": {"ilike": "a"}})
-        # await delete(engine, {"id": "1", "first_name": "rer", "last_name": "fef"})
-
-        # async with engine.acquire() as conn:
-        #     await conn.execute(peop.insert().values(first_name='Andrew', last_name='Star'))
-        #     await conn.execute(peop.insert().values(first_name='Andrew', last_name='Star'))
-        #
-        #     async for row in conn.execute(peop.select()):
-        #         print(row.id, row.first_name, row.last_name)
-        print(await get_all(engine))
-        # print(await set_now_task(engine, "862989874", "2"))
+# async def go():
+#     async with create_engine(user='postgres',
+#                              database='lab1',
+#                              host='127.0.0.1',
+#                              password='123456') as engine:
+#         # print(await get_personal_price(engine, "862989874", "1"))
+#         # print(await get_personal_price(engine, "862989874", "2"))
+#         # await create_table(engine)
+#         # await check_payment_status(engine, "1234332")
+#
+#         # await get_price(engine, 2)
+#         # await create_new_payment(engine, "1234332", 100, "1234332_9534922")
+#         # print(await get_payment(engine, "1234332_9534922"))
+#         # print(await get_personal_price(engine, "862989874", "1"))
+#         #
+#         # #
+#         # await registration(engine, {'name': 'Andrew', 'tg_id': '8432842'})
+#         # await registration(engine, {'name': 'Andr3ew', 'tg_id': '89573275'})
+#         #
+#         # await registration(engine, {'name': 'A', 'tg_id': '97372'})
+#         # await registration(engine, {'name': 'b3bb', 'tg_id': '8573275'})
+#         # await registration(engine, {'name': 'cecece', 'tg_id': '4324112'})
+#         #
+#         # await new_order(engine,
+#         #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/wall_', 'type_id': 1, 'value': 200})
+#         # await new_order(engine,
+#         #                 {'tg_id': '8629', 'url': 'vk.com/chipoli/wall_fd', 'type_id': 1, 'value': 25})
+#         # await new_order(engine,
+#         #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/dgwall_', 'type_id': 1, 'value': 25})
+#         # await new_order(engine,
+#         #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/wafdgfll_', 'type_id': 1, 'value': 300})
+#         # await new_order(engine,
+#         #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/dgwall_', 'type_id': 2, 'value': 2500})
+#         # await new_order(engine,
+#         #                 {'tg_id': '862989874', 'url': 'vk.com/chipoli/wafdgfll_', 'type_id': 2, 'value': 2000})
+#
+#         # await add_balance(engine, '8573275', -15)
+#         # await get_report(engine, '8573275', 1)
+#         # await set(engine, {"id": "2", "first_name": "rer", "last_name": "fef"})
+#         # await get_list(engine, {"first_name": {"like": ""}, "last_name": {"ilike": "A"}}, [{"field": "id", "direction": "asc"}], 4, 0)
+#         # await get(engine, "2")
+#         # await get_count(engine, {"first_name": {"like": ""}, "last_name": {"ilike": "a"}})
+#         # await delete(engine, {"id": "1", "first_name": "rer", "last_name": "fef"})
+#
+#         # async with engine.acquire() as conn:
+#         #     await conn.execute(peop.insert().values(first_name='Andrew', last_name='Star'))
+#         #     await conn.execute(peop.insert().values(first_name='Andrew', last_name='Star'))
+#         #
+#         #     async for row in conn.execute(peop.select()):
+#         #         print(row.id, row.first_name, row.last_name)
+#         print(await get_all(engine))
+#         # print(await set_now_task(engine, "862989874", "2"))
 
 
 loop = asyncio.get_event_loop()
