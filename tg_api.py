@@ -178,6 +178,8 @@ async def mail_on(message: types.Message, state: FSMContext):
             '<b> Данный формат контента не поддерживается для рассылки!</b>'
         )
 
+
+
 @dp.message_handler()
 async def echo_message(msg: types.Message):
     async with create_engine(user=config.datab["user"],
@@ -282,12 +284,12 @@ async def echo_message(msg: types.Message):
                                        "Введите ссылку и количество репостов через пробел.\nЦена " + str(
                                            default_price_repost / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
                                        reply_markup=nav.orderMenu)
-        elif msg.text[0:10] == "addbalance":
+        elif msg.text[0:10] == "addbalance" and msg.from_user.id==config.ADMIN_ID:
             add_balance = msg.text.split()
             await db_funcs.add_balance(engine, add_balance[1], int(add_balance[2]))
             await bot.send_message(msg.from_user.id,
                                    "Баланс обновлен: " + add_balance[1] + " tg_id, на " + add_balance[2] + " рублей")
-        elif msg.text[0:8] == "setprice":
+        elif msg.text[0:8] == "setprice" and msg.from_user.id==config.ADMIN_ID:
             set_price = msg.text.split()
             await db_funcs.set_personal_price(engine, set_price[1], set_price[2], set_price[3])
             await bot.send_message(msg.from_user.id,
@@ -306,7 +308,7 @@ async def echo_message(msg: types.Message):
                     try:
                         sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
                         if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
-                            like_api.make_like(str(uid), order_list[0], str(order_list[1]))
+                            await like_api.make_like(str(uid), order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine, {"tg_id": uid, "type_id": "1", "url": order_list[0],
                                                               "value": order_list[1], "sum": sum})
@@ -324,7 +326,7 @@ async def echo_message(msg: types.Message):
                     try:
                         sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
                         if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
-                            like_snebes_3.make_like(order_list[0], str(order_list[1]))
+                            await like_snebes_3.make_like(order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine,
                                                      {"tg_id": uid, "type_id": "1", "url": order_list[0],
@@ -344,7 +346,7 @@ async def echo_message(msg: types.Message):
                     try:
                         sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
                         if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
-                            repost_likest4.make_repost(order_list[0], str(order_list[1]))
+                            await repost_likest4.make_repost(order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine,
                                                      {"tg_id": uid, "type_id": "1", "url": order_list[0],
