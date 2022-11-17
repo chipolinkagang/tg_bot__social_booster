@@ -28,8 +28,10 @@ from aiopg.sa import create_engine
 import markups as nav
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
+
 class Mail(StatesGroup):
     mail = State()
+
 
 bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
 dp = Dispatcher(bot, storage=MemoryStorage())
@@ -102,6 +104,7 @@ async def mail(message: types.Message):
     )
     await Mail.mail.set()
 
+
 @dp.message_handler(state=Mail.mail, content_types=types.ContentType.ANY)
 async def mail_on(message: types.Message, state: FSMContext):
     async with create_engine(user=config.datab["user"],
@@ -110,74 +113,81 @@ async def mail_on(message: types.Message, state: FSMContext):
                              password=config.datab["password"]) as engine:
         select_users = await db_funcs.get_all(engine)
     await state.reset_state(with_data=False)
-    if types.ContentType.TEXT == message.content_type: # Если админ отправил текст
+    if types.ContentType.TEXT == message.content_type:  # Если админ отправил текст
         for user in select_users:
             try:
                 await bot.send_message(
                     chat_id=int(user),
-                    text=message.html_text
+                    text=message.html_text,
+                    parse_mode=types.ParseMode.HTML
                 )
                 await asyncio.sleep(0.33)
             except Exception:
                 pass
         else:
             await message.answer(
-                '<b> Рассылка завершена!</b>'
+                '<b> Рассылка завершена!</b>',
+                parse_mode=types.ParseMode.HTML
             )
 
-    elif types.ContentType.PHOTO == message.content_type: # Если админ отправил фото
+    elif types.ContentType.PHOTO == message.content_type:  # Если админ отправил фото
         for user in select_users:
             try:
                 await bot.send_photo(
                     chat_id=int(user),
                     photo=message.photo[-1].file_id,
-                    caption=message.html_text if message.caption else None
+                    caption=message.html_text if message.caption else None,
+                    parse_mode=types.ParseMode.HTML
                 )
                 await asyncio.sleep(0.33)
             except Exception:
                 pass
         else:
             await message.answer(
-                '<b> Рассылка завершена!</b>'
+                '<b> Рассылка завершена!</b>',
+                parse_mode=types.ParseMode.HTML
             )
 
-    elif types.ContentType.VIDEO == message.content_type: # Если админ отправил видео
+    elif types.ContentType.VIDEO == message.content_type:  # Если админ отправил видео
         for user in select_users:
             try:
                 await bot.send_video(
                     chat_id=int(user),
                     video=message.video.file_id,
-                    caption=message.html_text if message.caption else None
+                    caption=message.html_text if message.caption else None,
+                    parse_mode=types.ParseMode.HTML
                 )
                 await asyncio.sleep(0.33)
             except Exception:
                 pass
         else:
             await message.answer(
-                '<b> Рассылка завершена!</b>'
+                '<b> Рассылка завершена!</b>',
+                parse_mode=types.ParseMode.HTML
             )
 
-    elif types.ContentType.ANIMATION == message.content_type: # Если админ отправил gif
+    elif types.ContentType.ANIMATION == message.content_type:  # Если админ отправил gif
         for user in select_users:
             try:
                 await bot.send_animation(
                     chat_id=int(user),
                     animation=message.animation.file_id,
-                    caption=message.html_text if message.caption else None
+                    caption=message.html_text if message.caption else None,
+                    parse_mode=types.ParseMode.HTML
                 )
                 await asyncio.sleep(0.33)
             except Exception:
                 pass
         else:
             await message.answer(
-                '<b> Рассылка завершена!</b>'
+                '<b> Рассылка завершена!</b>',
+                parse_mode=types.ParseMode.HTML
             )
 
     else:
         await message.answer(
             '<b> Данный формат контента не поддерживается для рассылки!</b>'
         )
-
 
 
 @dp.message_handler()
@@ -284,12 +294,12 @@ async def echo_message(msg: types.Message):
                                        "Введите ссылку и количество репостов через пробел.\nЦена " + str(
                                            default_price_repost / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
                                        reply_markup=nav.orderMenu)
-        elif msg.text[0:10] == "addbalance" and msg.from_user.id==config.ADMIN_ID:
+        elif msg.text[0:10] == "addbalance" and msg.from_user.id == config.ADMIN_ID:
             add_balance = msg.text.split()
             await db_funcs.add_balance(engine, add_balance[1], int(add_balance[2]))
             await bot.send_message(msg.from_user.id,
                                    "Баланс обновлен: " + add_balance[1] + " tg_id, на " + add_balance[2] + " рублей")
-        elif msg.text[0:8] == "setprice" and msg.from_user.id==config.ADMIN_ID:
+        elif msg.text[0:8] == "setprice" and msg.from_user.id == config.ADMIN_ID:
             set_price = msg.text.split()
             await db_funcs.set_personal_price(engine, set_price[1], set_price[2], set_price[3])
             await bot.send_message(msg.from_user.id,
