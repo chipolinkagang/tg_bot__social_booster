@@ -275,7 +275,7 @@ async def echo_message(msg: types.Message):
                     try:
                         sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
                         if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
-                            view_api.make_view(order_list[0], str(order_list[1]))
+                            await view_api.make_view(order_list[0], str(order_list[1]))
                             await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
                             await db_funcs.new_order(engine, {"tg_id": uid, "type_id": "2", "url": order_list[0],
                                                               "value": order_list[1], "sum": sum})
