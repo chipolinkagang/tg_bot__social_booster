@@ -154,7 +154,8 @@ async def get_all(engine):
     async with engine.acquire() as conn:
         res = []
         async for row in conn.execute(users.select()):
-            res.append({"id": row.id, "name": row.name, "tg_id": row.tg_id, "balance": row.balance})
+            # res.append({"id": row.id, "name": row.name, "tg_id": row.tg_id, "balance": row.balance})
+            res.append(row.tg_id)
         return res
 
 

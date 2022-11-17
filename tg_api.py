@@ -3,7 +3,7 @@ import logging
 
 from aiogram import Bot, types
 from aiogram.utils import executor
-from aiogram.dispatcher import Dispatcher
+from aiogram.dispatcher import Dispatcher, FSMContext
 import math
 
 import config
@@ -20,10 +20,16 @@ from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActio
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 
+import time
+
 import db_funcs
 from aiopg.sa import create_engine
 
 import markups as nav
+from aiogram.dispatcher.filters.state import StatesGroup, State
+
+class Mail(StatesGroup):
+    mail = State()
 
 bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
 dp = Dispatcher(bot, storage=MemoryStorage())
@@ -88,6 +94,89 @@ async def process_callback_check_pay_button(callback_query: types.CallbackQuery)
             else:
                 await bot.send_message(callback_query.from_user.id, "Пополнение #" + label + " не завершено.")
 
+
+@dp.message_handler(commands=['mail'], user_id=config.ADMIN_ID, state='*')
+async def mail(message: types.Message):
+    await message.answer(
+        'Отправьте сообщение для рассылки:'
+    )
+    await Mail.mail.set()
+
+@dp.message_handler(state=Mail.mail, content_types=types.ContentType.ANY)
+async def mail_on(message: types.Message, state: FSMContext):
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
+        select_users = await db_funcs.get_all(engine)
+    await state.reset_state(with_data=False)
+    if types.ContentType.TEXT == message.content_type: # Если админ отправил текст
+        for user in select_users:
+            try:
+                await bot.send_message(
+                    chat_id=int(user),
+                    text=message.html_text
+                )
+                await asyncio.sleep(0.33)
+            except Exception:
+                pass
+        else:
+            await message.answer(
+                '<b> Рассылка завершена!</b>'
+            )
+
+    elif types.ContentType.PHOTO == message.content_type: # Если админ отправил фото
+        for user in select_users:
+            try:
+                await bot.send_photo(
+                    chat_id=int(user),
+                    photo=message.photo[-1].file_id,
+                    caption=message.html_text if message.caption else None
+                )
+                await asyncio.sleep(0.33)
+            except Exception:
+                pass
+        else:
+            await message.answer(
+                '<b> Рассылка завершена!</b>'
+            )
+
+    elif types.ContentType.VIDEO == message.content_type: # Если админ отправил видео
+        for user in select_users:
+            try:
+                await bot.send_video(
+                    chat_id=int(user),
+                    video=message.video.file_id,
+                    caption=message.html_text if message.caption else None
+                )
+                await asyncio.sleep(0.33)
+            except Exception:
+                pass
+        else:
+            await message.answer(
+                '<b> Рассылка завершена!</b>'
+            )
+
+    elif types.ContentType.ANIMATION == message.content_type: # Если админ отправил gif
+        for user in select_users:
+            try:
+                await bot.send_animation(
+                    chat_id=int(user),
+                    animation=message.animation.file_id,
+                    caption=message.html_text if message.caption else None
+                )
+                await asyncio.sleep(0.33)
+            except Exception:
+                pass
+        else:
+            await message.answer(
+                '<b> Рассылка завершена!</b>'
+            )
+
+    else:
+        await message.answer(
+            '<b> Данный формат контента не поддерживается для рассылки!</b>'
+        )
 
 @dp.message_handler()
 async def echo_message(msg: types.Message):
