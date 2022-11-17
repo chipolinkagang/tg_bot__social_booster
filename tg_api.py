@@ -1,104 +1,311 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 import asyncio
-from selenium.common.exceptions import NoSuchElementException
+import logging
+
+from aiogram import Bot, types
+from aiogram.utils import executor
+from aiogram.dispatcher import Dispatcher
+import math
+
 import config
+import like_api
+import like_snebes_3
+import pay_yoomoney
+import repost_likest4
+import view_api
+from aiogram.types.message import ContentType
+from aiogram.utils.markdown import text, bold, italic, code, pre
+from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions, InlineKeyboardButton, \
+    InlineKeyboardMarkup
 
-import time
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+
+import db_funcs
+from aiopg.sa import create_engine
+
+import markups as nav
+
+bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
+dp = Dispatcher(bot, storage=MemoryStorage())
+dp.middleware.setup(LoggingMiddleware())
 
 
-async def make_view(url, value):
-    chrome_options = Options()
-    chrome_options.add_argument(config.chrome_profile
-        ) #("user-data-dir=C:\\Users\\kiril\\AppData\\Local\\Google\\Chrome Beta\\User Data\\Profile 1")
-    chrome_options.binary_location = config.chrome_binary_exe_argument#"C:\\Program Files\\Google\\Chrome Beta\\Application\\chrome.exe"
-    driver = webdriver.Chrome(executable_path= config.chrome_driver_argument,
-                              chrome_options=chrome_options) #"C:\\Users\\kiril\\PycharmProjects\\tg_bot\\chromedriver.exe"
-
-    def check_exists_by_xpath(xpath):
-        try:
-            driver.find_element(By.XPATH, xpath)
-        except NoSuchElementException:
-            return False
-        return True
-    try:
-        driver.get('https://lk.vkviews.ru/')
-        #time.sleep(30)
-        if check_exists_by_xpath('''/html/body/div[1]/div/div/div[2]/button[1]'''):
-            id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/div/div/div[2]/button[1]''')  # login vk
-            id_box.click()
-            time.sleep(1)
-
-        driver.get('https://lk.vkviews.ru/task/add/post')
-        #time.sleep(1)
-        if check_exists_by_xpath('''/html/body/div[1]/div/div/div/div[2]/form/div[2]/div/div[2]/input'''):
-            id_box = driver.find_element(By.XPATH,
-                                         '''/html/body/div[1]/div/div/div/div[2]/form/div[2]/div/div[2]/input''')
-            id_box.send_keys(url)  #
-            id_box = driver.find_element(By.XPATH,
-                                         '''/html/body/div[1]/div/div/div/div[2]/form/div[4]/div[2]/div[1]/input''')
-            id_box.clear()
-            id_box.send_keys(value)  #
-            if check_exists_by_xpath('''/html/body/div[1]/div/div/div/div[2]/form/div[9]/button'''):
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[1]/div/div/div/div[2]/form/div[9]/button''')  # make order
-            elif check_exists_by_xpath('''/html/body/div[1]/div/div/div/div[2]/form/div[10]/button'''):
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[1]/div/div/div/div[2]/form/div[10]/button''')  # make order
-            else:
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[1]/div/div/div/div[2]/form/div[8]/button''')  # make order
-            id_box.click()
+@dp.message_handler(commands=['start', 'help'])
+async def send_welcome(message: types.Message):
+    uid = message.from_user.id  # записал id
+    uname = message.from_user.full_name  # имя
+    person = {"name": uname, "tg_id": str(uid)}
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
+        if not await db_funcs.reg_check(engine, person["tg_id"]):
+            await db_funcs.registration(engine, person)
+            await message.reply("Регистрация успешно пройдена!", reply_markup=nav.mainMenu)
         else:
-            id_box = driver.find_element(By.XPATH,
-                                         '''/html/body/div[1]/div/div/div/div[3]/form/div[2]/div/div[2]/input''')
-            id_box.send_keys(url)  #
-            id_box = driver.find_element(By.XPATH,
-                                         '''/html/body/div[1]/div/div/div/div[3]/form/div[4]/div[2]/div[1]/input''')
-            id_box.clear()
-            id_box.send_keys(value)  #
-            if check_exists_by_xpath('''/html/body/div[1]/div/div/div/div[3]/form/div[9]/button'''):
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[1]/div/div/div/div[3]/form/div[9]/button''')  # make order
-            elif check_exists_by_xpath('''/html/body/div[1]/div/div/div/div[3]/form/div[10]/button'''):
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[1]/div/div/div/div[3]/form/div[10]/button''')  # make order
+            await message.reply("Вы уже зарегистрированы. Переходим к меню", reply_markup=nav.mainMenu)
+
+
+# class Task_now:
+#     task_id = 0  # 1 - лайки, 2 - просмотры
+#
+#     def choose_task(self, _task: int):
+#         self.task_id = _task
+#
+#     def check_task(self):
+#         return self.task_id
+#
+#
+# task = Task_now()
+
+@dp.callback_query_handler(lambda c: c.data == 'make_pay_button')
+async def process_callback_make_pay_button(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
+        await db_funcs.set_now_task(engine, str(callback_query.from_user.id), "1000")
+    await bot.send_message(callback_query.from_user.id, 'Введите сумму для пополнения с карты:')
+
+
+@dp.callback_query_handler(lambda c: c.data == 'check_pay_button')
+async def process_callback_check_pay_button(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
+        labels = await db_funcs.check_payment_labels(engine, str(callback_query.from_user.id))
+        for label in labels:
+            if await pay_yoomoney.check_payment(label):
+                payment_info = await db_funcs.get_payment(engine, label)
+                await db_funcs.delete_payment_label(engine, label)
+                await db_funcs.add_balance(engine, payment_info["tg_id"], payment_info["sum"])
+                await bot.send_message(callback_query.from_user.id,
+                                       "Успешное пополнение баланса # " + label + ".\nЗачислено: " + str(
+                                           payment_info["sum"]))
             else:
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[1]/div/div/div/div[3]/form/div[8]/button''')  # make order
-            id_box.click()
+                await bot.send_message(callback_query.from_user.id, "Пополнение #" + label + " не завершено.")
 
 
-        # решение капчи:
-        time.sleep(2)
+@dp.message_handler()
+async def echo_message(msg: types.Message):
+    async with create_engine(user=config.datab["user"],
+                             database=config.datab["database"],
+                             host=config.datab["host"],
+                             password=config.datab["password"]) as engine:
+        if msg.text == "⬅️ Главное меню":
+            # task.choose_task(0)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
+            await bot.send_message(msg.from_user.id, "Вернулись в главное меню.", reply_markup=nav.mainMenu)
 
-        for tr in range(0, 5):
-            if check_exists_by_xpath('''/html/body/div[4]/div[2]/div/div[2]/div/div[2]/div[2]'''):
-                id_box = driver.find_element(By.XPATH,
-                                             '''/html/body/div[4]/div[2]/div/div[2]/div/div[2]/div[2]''')  # 2captcha расширение
-                id_box.click()
-                break
+        # for main menu:
+        elif msg.text == "🆕 ЗАКАЗ":
+            # task.choose_task(0)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
+            await bot.send_message(msg.from_user.id, "Выберите тип продвижения.", reply_markup=nav.orderMenu)
+        elif msg.text == "ℹ️ Профиль":
+            # task.choose_task(0)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
+            uid = str(msg.from_user.id)
+            balance = await db_funcs.get_balance(engine, str(msg.from_user.id))
+            ans = "Информация:\nTelegram id: " + uid + "\nБаланс: " + str(
+                balance) + "\nНа счет пополнения баланса писать: @chipolinka_gang"
+            await bot.send_message(msg.from_user.id, ans, reply_markup=nav.inline_kb_make_payment)
+        elif msg.text == "#️⃣ Статистика":
+            uid = str(msg.from_user.id)
+            get_like = await db_funcs.get_report(engine, uid, 1)
+            get_snebes_like = await db_funcs.get_report(engine, uid, 3)
+            get_view = await db_funcs.get_report(engine, uid, 2)
+            # task.choose_task(0)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
+            await bot.send_message(msg.from_user.id,
+                                   "Статистика:\n\nЛайки обычные:\nЗаказов: " + str(
+                                       get_like['res_orders']) + " штук\nВсего: " +
+                                   str(get_like['res_sum']) + " лайков\n\nЛайки живые:\nЗаказов: " + str(
+                                       get_snebes_like['res_orders']) + " штук\nВсего: " +
+                                   str(get_snebes_like['res_sum']) + " лайков\n\nПросмотры:\nЗаказов: " + str(
+                                       get_view['res_orders']) + " штук\nВсего: " +
+                                   str(get_view['res_sum']) + " просмотров")
+        # for order menu:
+        elif msg.text == "🔝 Лайки":
+            await bot.send_message(msg.from_user.id, "Выберите тип лайков.", reply_markup=nav.likeMenu)
+        elif msg.text == "❤️Обычные лайки":
+            # task.choose_task(1)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "1")
+            default_price_like_1 = 60
+            if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1") is not None:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(
+                                           engine, str(msg.from_user.id),
+                                           "1") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
             else:
-                if check_exists_by_xpath('''/html/body/div[4]/div[2]/div/h3'''):  # чек на конец
-                    break
-                time.sleep(2)
-        for tr in range(0, 24):
-            time.sleep(5)  # /html/body/div[4]/div[3]/div/h3
-            if check_exists_by_xpath('''/html/body/div[4]/div[2]/div/h3'''):  # чек на конец
-                break
-        # time.sleep(1)
-        # id_box = driver.find_element(By.XPATH, '''/html/body/div[4]/div[2]/div/div[1]''')  # close order
-        # id_box.click()
-        # id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/header/div/div[2]/div[2]/div/img''') # выход
-        # id_box.click()
-        # time.sleep(1)
-        # id_box = driver.find_element(By.XPATH, '''/html/body/div[1]/header/div/div[2]/div[2]/ul/li[3]/a''') # exit
-        # id_box.click()
-        # time.sleep(1)
-    except Exception as ex:
-        print(ex)
-    finally:
-        driver.quit()
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(
+                                           default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
+        elif msg.text == "👤Живые лайки":
+            # task.choose_task(1)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "3")
+            default_price_like_1 = 90
+            if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "3") is not None:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + await db_funcs.get_personal_price(
+                                           engine, str(msg.from_user.id),
+                                           "3") + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
+            else:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество лайков через пробел.\nЦена " + str(
+                                           default_price_like_1) + " рублей за 1000 лайков\nПример:\nhttps://vk.com/wall-22822305_1307837 110",
+                                       reply_markup=nav.likeMenu)
+        elif msg.text == "👁‍🗨 Просмотры":
 
-#make_view("https://vk.com/wall436857739_139", 1)
+            # task.choose_task(2)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "2")
+            default_price_view_2 = 10
+            if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2") is not None:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество просмотров через пробел.\nЦена " + await db_funcs.get_personal_price(
+                                           engine, str(msg.from_user.id),
+                                           "2") + " рублей за 1000 просмотров\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
+                                       reply_markup=nav.orderMenu)
+            else:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество просмотров через пробел.\nЦена " + str(
+                                           default_price_view_2) + " рублей за 1000 просмотров\nПример:\nhttps://vk.com/wall-22822305_1307837 3200",
+                                       reply_markup=nav.orderMenu)
+        elif msg.text == "📢Репосты":
+
+            # task.choose_task(2)
+            await db_funcs.set_now_task(engine, str(msg.from_user.id), "4")
+            default_price_repost = 120
+            if await db_funcs.get_personal_price(engine, str(msg.from_user.id), "4") is not None:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество репостов через пробел.\nЦена " + str(
+                                           int(await db_funcs.get_personal_price(engine, str(msg.from_user.id),
+                                                                                 "4")) / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
+                                       reply_markup=nav.orderMenu)
+            else:
+                await bot.send_message(msg.from_user.id,
+                                       "Введите ссылку и количество репостов через пробел.\nЦена " + str(
+                                           default_price_repost / 10) + " рублей за 100 репостов\nПример:\nhttps://vk.com/wall-22822305_1307837 32",
+                                       reply_markup=nav.orderMenu)
+        elif msg.text[0:10] == "addbalance":
+            add_balance = msg.text.split()
+            await db_funcs.add_balance(engine, add_balance[1], int(add_balance[2]))
+            await bot.send_message(msg.from_user.id,
+                                   "Баланс обновлен: " + add_balance[1] + " tg_id, на " + add_balance[2] + " рублей")
+        elif msg.text[0:8] == "setprice":
+            set_price = msg.text.split()
+            await db_funcs.set_personal_price(engine, set_price[1], set_price[2], set_price[3])
+            await bot.send_message(msg.from_user.id,
+                                   "Price обновлен:\n" + "tg_id: " + set_price[1] + ", type: " + set_price[
+                                       2] + ", цена: " + set_price[3] + " рублей")
+        elif msg.text[0:5] == "https":
+            order_list = msg.text.split()
+            if len(order_list) == 2 and int(order_list[1]) > 0:
+                uid = str(msg.from_user.id)
+                # if task.check_task() == 1:
+                if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "1":
+                    order_price = 60
+                    t = await db_funcs.get_personal_price(engine, str(msg.from_user.id), "1")
+                    if t is not None:
+                        order_price = t
+                    try:
+                        sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
+                        if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
+                            like_api.make_like(str(uid), order_list[0], str(order_list[1]))
+                            await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
+                            await db_funcs.new_order(engine, {"tg_id": uid, "type_id": "1", "url": order_list[0],
+                                                              "value": order_list[1], "sum": sum})
+                            await db_funcs.add_balance(engine, uid, -sum)
+                        else:
+                            await bot.send_message(msg.from_user.id, "Недостаточно средств.")
+                    except Exception as ex:
+                        await bot.send_message(msg.from_user.id, "Ошибка:" + str(ex))
+                # if task.check_task() == 3:
+                if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "3":
+                    order_price = 90
+                    t = await db_funcs.get_personal_price(engine, str(msg.from_user.id), "3")
+                    if t is not None:
+                        order_price = t
+                    try:
+                        sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
+                        if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
+                            like_snebes_3.make_like(order_list[0], str(order_list[1]))
+                            await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
+                            await db_funcs.new_order(engine,
+                                                     {"tg_id": uid, "type_id": "1", "url": order_list[0],
+                                                      "value": order_list[1], "sum": sum})
+                            await db_funcs.add_balance(engine, uid, -sum)
+                        else:
+                            await bot.send_message(msg.from_user.id, "Недостаточно средств.")
+                    except Exception as ex:
+                        await bot.send_message(msg.from_user.id, "Ошибка:" + str(ex))
+
+                # if task.check_task() == 4:
+                if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "4":
+                    order_price = 120
+                    t = await db_funcs.get_personal_price(engine, str(msg.from_user.id), "4")
+                    if t is not None:
+                        order_price = t
+                    try:
+                        sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
+                        if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
+                            repost_likest4.make_repost(order_list[0], str(order_list[1]))
+                            await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
+                            await db_funcs.new_order(engine,
+                                                     {"tg_id": uid, "type_id": "1", "url": order_list[0],
+                                                      "value": order_list[1], "sum": sum})
+                            await db_funcs.add_balance(engine, uid, -sum)
+                        else:
+                            await bot.send_message(msg.from_user.id, "Недостаточно средств.")
+                    except Exception as ex:
+                        await bot.send_message(msg.from_user.id, "Ошибка:" + str(ex))
+
+                # if task.check_task() == 2:
+                if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "2":
+                    order_price = 10
+                    t = await db_funcs.get_personal_price(engine, str(msg.from_user.id), "2")
+                    if t is not None:
+                        order_price = t
+                    try:
+                        sum = math.ceil(int(order_list[1]) / 1000 * int(order_price))
+                        if (await db_funcs.get_balance(engine, str(msg.from_user.id)) - sum) > 0:
+                            view_api.make_view(order_list[0], str(order_list[1]))
+                            await bot.send_message(msg.from_user.id, "Задание успешно поставлено")
+                            await db_funcs.new_order(engine, {"tg_id": uid, "type_id": "2", "url": order_list[0],
+                                                              "value": order_list[1], "sum": sum})
+                            await db_funcs.add_balance(engine, uid, -sum)
+                        else:
+                            await bot.send_message(msg.from_user.id, "Недостаточно средств.")
+                    except Exception as ex:
+                        await bot.send_message(msg.from_user.id, "Ошибка:" + str(ex))
+                # if task.check_task() == 0:
+                if await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "0":
+                    await bot.send_message(msg.from_user.id, "Не выбран тип накрутки.")
+            else:
+                await bot.send_message(msg.from_user.id,
+                                       "Неверный формат ввода.\nПример верного формата:\nhttps://vk.com/wall-22822305_1307837 3200\n(ссылка_на_пост, 1 пробел, количество)")
+        elif (msg.text.isdigit()) and (await db_funcs.get_now_task(engine, str(msg.from_user.id)) == "1000"):
+            if int(msg.text) > 1:
+                payment_url_label = await pay_yoomoney.create_payment(str(msg.from_user.id), int(msg.text))
+                inline_kb__check_payment = InlineKeyboardMarkup()
+                inline_kb__check_payment.row(InlineKeyboardButton('Оплатить', url=payment_url_label["url"]))
+                inline_kb__check_payment.row(InlineKeyboardButton('Проверить оплату', callback_data='check_pay_button'))
+                await bot.send_message(msg.from_user.id,
+                                       "Ссылка для оплаты создана. \nОплата доступна в течение 30 минут.",
+                                       reply_markup=inline_kb__check_payment)
+                await db_funcs.create_new_payment(engine, str(msg.from_user.id), int(msg.text),
+                                                  payment_url_label["label"])
+            else:
+                await bot.send_message(msg.from_user.id, "Сумма не может быть меньше 2 рублей.")
+        else:
+            await bot.send_message(msg.from_user.id, "Чтобы появилось меню, отправьте /start")
+
+
+if __name__ == '__main__':
+    executor.start_polling(dp)
