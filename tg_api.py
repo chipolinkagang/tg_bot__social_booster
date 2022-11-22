@@ -219,6 +219,7 @@ async def echo_message(msg: types.Message):
             get_like = await db_funcs.get_report(engine, uid, 1)
             get_snebes_like = await db_funcs.get_report(engine, uid, 3)
             get_view = await db_funcs.get_report(engine, uid, 2)
+            get_repost = await db_funcs.get_report(engine, uid, 4)
             # task.choose_task(0)
             await db_funcs.set_now_task(engine, str(msg.from_user.id), "0")
             await bot.send_message(msg.from_user.id,
@@ -228,7 +229,9 @@ async def echo_message(msg: types.Message):
                                        get_snebes_like['res_orders']) + " штук\nВсего: " +
                                    str(get_snebes_like['res_sum']) + " лайков\n\nПросмотры:\nЗаказов: " + str(
                                        get_view['res_orders']) + " штук\nВсего: " +
-                                   str(get_view['res_sum']) + " просмотров")
+                                   str(get_view['res_sum']) + " просмотров\n\nРепосты:\nЗаказов: " + str(
+                                       get_repost['res_orders']) + " штук\nВсего: " +
+                                   str(get_repost['res_sum']) + " репостов")
         # for order menu:
         elif msg.text == "🔝 Лайки":
             await bot.send_message(msg.from_user.id, "Выберите тип лайков.", reply_markup=nav.likeMenu)
