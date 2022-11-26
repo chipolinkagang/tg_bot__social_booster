@@ -33,7 +33,7 @@ class Mail(StatesGroup):
     mail = State()
 
 
-bot = Bot(token='5530817308:AAGVgvbqKPK2mryMkoGOcWSWndr4oOXkdrA')
+bot = Bot(token='')
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
 
